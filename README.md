@@ -51,6 +51,7 @@ claude plugin uninstall token-usage-ribbon@imetaroy
 
 - **Prices are estimates.** They come from the `MODELS` table in `hooks/cache-art.ts`, not your bill.
 - **Subagents don't count.** Only your main chat resets the cache clock.
+- **It survives restarts.** The cache timing is saved per session (in the plugin's own store), so the cache status comes back after an idle session is suspended or the app relaunches. Saved timings older than 7 days are cleared. If Claude Code can't say how big the context is, the band still shows Cache Warm or Cache Cold, just without a price.
 - **The cache card** (behind Show) is a drawing, so it carries its own embedded font (Outfit) rather than Claude Code's.
 
 ## Develop
@@ -66,7 +67,7 @@ claude plugin test ./token-usage-ribbon
 .claude-plugin/   plugin.json, marketplace.json
 hooks/            register.tsx (the band), cache-art.ts (cache card, prices), font.ts
 types/            the shape of what the band remembers
-tests/            7 tests: one-row layout at every width, warm and cold, terminal, cleared sessions
+tests/            10 tests: one-row layout at every width, warm and cold, terminal, cleared sessions, restarts
 ```
 
 ## Credits

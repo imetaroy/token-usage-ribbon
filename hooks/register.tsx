@@ -25,6 +25,9 @@ const GAP = 3
 const BUTTON_CELLS = 8
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
+/** Saved cache facts older than this are dropped when a session starts. */
+const KEEP_MS = 7 * 24 * 3600 * 1000
+const STORE_PREFIX = 'cache:'
 
 const windows = atom({ plugin: 'token-usage-ribbon', key: 'windows' } as const, [] as Window[])
 const cache = atom({ plugin: 'token-usage-ribbon', key: 'cache' } as const, null as CacheFacts | null)
@@ -55,9 +58,12 @@ const fmtReset = (iso: string | undefined, now: number): string => {
   return `${Math.floor(hours / 24)}d ${hours % 24}h`
 }
 
-/** What the cache drawings read, or null until a request and its context size are known. */
+/**
+ * What the cache drawings read, or null until the first request is known. The token
+ * count may still be 0 (unknown): the band then shows warm or cold without a price.
+ */
 export const viewOf = (c: CacheFacts | null, now: number): CacheView | null => {
-  if (!c || c.lastAt <= 0 || c.tokens <= 0) return null
+  if (!c || c.lastAt <= 0) return null
   const idleMs = Math.max(0, now - c.lastAt)
   return {
     mode: idleMs >= TTL_MS ? 'cold' : 'warm',
@@ -66,6 +72,36 @@ export const viewOf = (c: CacheFacts | null, now: number): CacheView | null => {
     tokens: c.tokens,
     window: c.window,
     mine: familyOf(c.model),
+  }
+}
+
+// The cache facts also live in $.store under the session's id, so they survive the
+// session's process restarting (an idle session suspended, the app relaunched).
+// $.state alone lasts only as long as the process.
+const storeKey = async ($: EngineInterface): Promise<string> => STORE_PREFIX + (await $.session.id())
+
+const isFacts = (v: unknown): v is CacheFacts =>
+  typeof v === 'object' && v !== null && typeof (v as CacheFacts).lastAt === 'number' && typeof (v as CacheFacts).tokens === 'number'
+
+const loadSaved = async ($: EngineInterface): Promise<CacheFacts | null> => {
+  const v = await $.store.get(await storeKey($))
+  return isFacts(v) ? v : null
+}
+
+/** Write the cache facts through to $.store (or drop them when cleared). */
+const save = async ($: EngineInterface): Promise<void> => {
+  const c = await read($, cache)
+  const key = await storeKey($)
+  if (c && c.lastAt > 0) await $.store.set(key, c)
+  else await $.store.delete(key)
+}
+
+/** Drop saved facts for sessions idle longer than KEEP_MS, so the store stays small. */
+const prune = async ($: EngineInterface, now: number): Promise<void> => {
+  for (const key of await $.store.keys()) {
+    if (!key.startsWith(STORE_PREFIX)) continue
+    const v = await $.store.get(key)
+    if (!isFacts(v) || now - v.lastAt > KEEP_MS) await $.store.delete(key)
   }
 }
 
@@ -84,11 +120,21 @@ const measure = async ($: EngineInterface, lastAt: number | null, model: string 
     window: u.context.window || c?.window || 0,
     model: m || c?.model || null,
   }))
+  await save($)
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await pull($)
+    // A restarted process starts with empty state: bring back what this session saved.
+    try {
+      const now = await $.clock.now()
+      await prune($, now)
+      const saved = await loadSaved($)
+      if (saved) await update($, cache, c => c ?? saved)
+    } catch {
+      // the band still draws usage when the store can't be read
+    }
     $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     return next(e)
   })
@@ -100,6 +146,7 @@ export const register: Register = on => {
     if (e.changed.includes('context') && e.context.tokens && e.context.tokens > 0) {
       const tokens = e.context.tokens
       await update($, cache, c => (c ? { ...c, tokens, window: e.context.window || c.window } : c))
+      await save($)
     }
     return next(e)
   })
@@ -110,13 +157,21 @@ export const register: Register = on => {
     if (e.source === 'clear' || e.source === 'compact') {
       await update($, cache, () => null)
       await update($, fold, () => null)
-    } else if ((e.source === 'resume' || e.source === 'fork') && typeof e.seconds_since_last_response === 'number') {
+      await save($)
+    } else if (e.source === 'resume' || e.source === 'fork') {
+      // Fill each fact from the event where it has one, else from what was saved or held.
       const now = await $.clock.now()
-      const lastAt = now - e.seconds_since_last_response * 1000
-      const window = (await $.session.usage()).context.window
-      const model = typeof e.model === 'string' ? e.model : await $.session.model()
-      const tokens = typeof e.context_tokens === 'number' ? e.context_tokens : 0
-      await update($, cache, () => ({ lastAt, tokens, window, model }))
+      const held = (await read($, cache)) ?? (await loadSaved($))
+      const lastAt = typeof e.seconds_since_last_response === 'number'
+        ? now - e.seconds_since_last_response * 1000
+        : (held?.lastAt ?? 0)
+      if (lastAt > 0) {
+        const window = (await $.session.usage()).context.window || held?.window || 0
+        const model = typeof e.model === 'string' ? e.model : (held?.model ?? (await $.session.model()))
+        const tokens = typeof e.context_tokens === 'number' && e.context_tokens > 0 ? e.context_tokens : (held?.tokens ?? 0)
+        await update($, cache, () => ({ lastAt, tokens, window, model }))
+        await save($)
+      }
     }
     return r
   }).catch(($, e, next) => next(e)) // a band that fails to seed never holds up the session
@@ -126,6 +181,7 @@ export const register: Register = on => {
     if (!e.agentId) {
       const now = await $.clock.now()
       await update($, cache, c => ({ lastAt: now, tokens: c?.tokens ?? 0, window: c?.window ?? 0, model: c?.model ?? null }))
+      await save($)
     }
     yield* next(e)
   })
@@ -171,12 +227,14 @@ export const register: Register = on => {
     const mode = view?.mode ?? 'warm'
     const cold = mode === 'cold'
     const mine = view ? mineModel(view) : undefined
-    const cost = view && mine ? usd(costOf(mine, mode, view.tokens)) : null
+    // With the token count unknown (0) there is no price and no card to open.
+    const known = view !== null && view.tokens > 0
+    const cost = view && known && mine ? usd(costOf(mine, mode, view.tokens)) : null
     const minsLeft = view ? Math.max(0, TTL_MIN - view.idleMin) : 0
 
     const stored = await read($, fold)
     // The card stays folded until asked for: a cold cache already shows its price on the row.
-    const open = Svg !== null && view !== null && stored !== null && stored.mode === mode && stored.open
+    const open = Svg !== null && known && stored !== null && stored.mode === mode && stored.open
     const toggle = () => update($, fold, f => ({ mode, open: !(f && f.mode === mode && f.open) }))
 
     // One row, always. From the fullest form down, take the first that fits;
@@ -226,7 +284,7 @@ export const register: Register = on => {
         const c = cacheText(lv)
         w += GAP + 2 + c.head.length + c.tail.length
       }
-      if (Svg && view && lv.button) w += 2 + BUTTON_CELLS
+      if (Svg && known && lv.button) w += 2 + BUTTON_CELLS
       return w
     }
     const lv = LEVELS.find(l => width(l) <= columns) ?? LEVELS[LEVELS.length - 1]!
@@ -254,7 +312,7 @@ export const register: Register = on => {
       </Box>
     ) : null
 
-    const button = Svg && view && lv.button ? (
+    const button = Svg && known && lv.button ? (
       <Box key="fold" flexShrink={0} marginLeft={2}>
         <Button key="cache-fold" label={open ? 'Hide' : 'Show'} onPress={toggle} dimColor />
       </Box>

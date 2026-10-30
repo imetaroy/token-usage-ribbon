@@ -16,9 +16,13 @@ const PROPS = {
 const WARM_IDLE = 18 * 60 // 18 minutes: warm, cold in 42m
 const COLD_IDLE = (3 * 24 + 9) * 3600 // 3d 9h: cold
 
+const SESSION = 's-1'
+const IDLE_2H = 2 * 3600 // cold, and well inside the 7 days the band keeps saved facts
+
 const seed = async ($: any, on: any, idle: number) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('session.id', () => ({ value: SESSION }))
   on('session.start', ($: any, e: any) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))
@@ -90,5 +94,50 @@ test('a cleared session drops the cache until the next reply', async ($, on) => 
   const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   expect(await band.find({ text: 'Cache Cold' })).toBeUndefined()
   expect(await band.find({ text: '99% left' })).toBeDefined()
+  await band.unmount()
+})
+
+test('a restarted process brings the cache back from what the session saved', async ($, on) => {
+  // The process restarted: $.state is empty, but the store still holds this session's facts.
+  mock.store(on, { [`cache:${SESSION}`]: { lastAt: NOW - IDLE_2H * 1000, tokens: 770000, window: 1000000, model: 'claude-opus-5-5' } })
+  mock.clock(on, { now: NOW })
+  on('session.id', () => ({ value: SESSION }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
+
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect(await band.find({ text: 'Cache Cold' })).toBeDefined()
+  expect(await band.find({ text: ' 2h 0m idle · $6.16 next' })).toBeDefined()
+  await band.unmount()
+})
+
+test('saved facts from a session idle over 7 days are dropped, not shown', async ($, on) => {
+  mock.store(on, { [`cache:${SESSION}`]: { lastAt: NOW - 8 * 24 * 3600 * 1000, tokens: 770000, window: 1000000, model: 'claude-opus-5-5' } })
+  mock.clock(on, { now: NOW })
+  on('session.id', () => ({ value: SESSION }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
+
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect(await band.find({ text: 'Cache Cold' })).toBeUndefined()
+  await band.unmount()
+})
+
+test('a resume with no token count still shows the cache state, without a price or card', async ($, on) => {
+  mock.store(on)
+  mock.clock(on, { now: NOW })
+  on('session.id', () => ({ value: SESSION }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
+  on('classic.SessionStart', () => ({}))
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
+  await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: IDLE_2H, model: 'claude-opus-5-5' })
+
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect(await band.find({ text: 'Cache Cold' })).toBeDefined()
+  expect(await band.find({ text: ' 2h 0m idle' })).toBeDefined()
+  expect(await band.find({ key: 'cache-fold' })).toBeUndefined()
   await band.unmount()
 })
