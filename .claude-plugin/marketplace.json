@@ -4,7 +4,7 @@
   "description": "Claude Code mods by Prasant Roy.",
   "plugins": [
     {
-      "name": "usage-ribbon",
+      "name": "token-usage-ribbon",
       "source": "./",
       "description": "A one-row band above the prompt in Claude Code's own colors: usage left, reset times, and whether the prompt cache is warm or cold."
     }

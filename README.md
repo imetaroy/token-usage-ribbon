@@ -1,4 +1,4 @@
-# claude-usage-ribbon
+# token-usage-ribbon
 
 A Claude Code mod that adds one slim row above your prompt, drawn in Claude Code's own colours:
 
@@ -23,20 +23,20 @@ It costs nothing to run: it reads Claude Code's own numbers and draws them. It n
 At the prompt of a Claude Code terminal session:
 
 ```
-/plugin install usage-ribbon --marketplace imetaroy/claude-usage-ribbon
+/plugin install token-usage-ribbon --marketplace imetaroy/token-usage-ribbon
 ```
 
 Type `y` to add the marketplace, then pick the **user** scope. Or from a shell:
 
 ```
-claude plugin install usage-ribbon --marketplace imetaroy/claude-usage-ribbon
+claude plugin install token-usage-ribbon --marketplace imetaroy/token-usage-ribbon
 ```
 
 On older Claude Code builds without `--marketplace`, use two steps:
 
 ```
-claude plugin marketplace add imetaroy/claude-usage-ribbon
-claude plugin install usage-ribbon@imetaroy
+claude plugin marketplace add imetaroy/token-usage-ribbon
+claude plugin install token-usage-ribbon@imetaroy
 ```
 
 Start a new session to see the band. If you also have the original ribbon installed, disable it so you don't get two bands.
@@ -44,7 +44,7 @@ Start a new session to see the band. If you also have the original ribbon instal
 ## Remove
 
 ```
-claude plugin uninstall usage-ribbon@imetaroy
+claude plugin uninstall token-usage-ribbon@imetaroy
 ```
 
 ## Good to know
@@ -56,8 +56,8 @@ claude plugin uninstall usage-ribbon@imetaroy
 ## Develop
 
 ```
-claude --plugin-dir ./claude-usage-ribbon
-claude plugin test ./claude-usage-ribbon
+claude --plugin-dir ./token-usage-ribbon
+claude plugin test ./token-usage-ribbon
 ```
 
 `plugin test` needs a recent Claude Code build.

@@ -28,7 +28,7 @@ const seed = async ($: any, on: any, idle: number) => {
 
 test('a warm cache shows as text on the row, with the minutes left, folded', async ($, on) => {
   await seed($, on, WARM_IDLE)
-  const band = await $.ui.mount({ plugin: 'usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   // The row is plain text in theme colours: no drawings until the card opens.
   expect(await band.findAll({ type: 'Svg' })).toEqual([])
   expect(await band.find({ text: 'Cache Warm' })).toBeDefined()
@@ -44,7 +44,7 @@ test('a warm cache shows as text on the row, with the minutes left, folded', asy
 
 test('a cold cache shows its re-cache price on the row and opens the card on Show', async ($, on) => {
   await seed($, on, COLD_IDLE)
-  const band = await $.ui.mount({ plugin: 'usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   expect(await band.find({ key: 'card' })).toBeUndefined()
   expect(await band.find({ text: 'Cache Cold' })).toBeDefined()
   // Opus 5.5: 770k tokens at the 1-hour write price, 2 x $4 per million.
@@ -61,7 +61,7 @@ test('a cold cache shows its re-cache price on the row and opens the card on Sho
 test('squeezed, the cache never leaves the row: the band trims extras, keeping every label', async ($, on) => {
   await seed($, on, WARM_IDLE)
   for (const bodyColumns of [120, 80, 53, 33]) {
-    const band = await $.ui.mount({ plugin: 'usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: { ...PROPS, bodyColumns } })
+    const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: { ...PROPS, bodyColumns } })
     const rows = await band.findAll({ key: 'row' })
     expect(rows.length).toBe(1)
     expect(JSON.stringify(rows[0])).toContain('Cache Warm')
@@ -75,7 +75,7 @@ test('squeezed, the cache never leaves the row: the band trims extras, keeping e
 
 test('the terminal draws the cache as text, with no drawings and no fold button', async ($, on) => {
   await seed($, on, COLD_IDLE)
-  const band = await $.ui.mount({ plugin: 'usage-ribbon', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await band.find({ text: 'Cache Cold' })).toBeDefined()
   expect(await band.find({ text: ' 3d 9h idle · $6.16 next' })).toBeDefined()
   expect(await band.findAll({ type: 'Svg' })).toEqual([])
@@ -87,7 +87,7 @@ test('the terminal draws the cache as text, with no drawings and no fold button'
 test('a cleared session drops the cache until the next reply', async ($, on) => {
   await seed($, on, COLD_IDLE)
   await $.classic.SessionStart({ source: 'clear' })
-  const band = await $.ui.mount({ plugin: 'usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  const band = await $.ui.mount({ plugin: 'token-usage-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   expect(await band.find({ text: 'Cache Cold' })).toBeUndefined()
   expect(await band.find({ text: '99% left' })).toBeDefined()
   await band.unmount()

@@ -26,9 +26,9 @@ const BUTTON_CELLS = 8
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
 
-const windows = atom({ plugin: 'usage-ribbon', key: 'windows' } as const, [] as Window[])
-const cache = atom({ plugin: 'usage-ribbon', key: 'cache' } as const, null as CacheFacts | null)
-const fold = atom({ plugin: 'usage-ribbon', key: 'fold' } as const, null as Fold | null)
+const windows = atom({ plugin: 'token-usage-ribbon', key: 'windows' } as const, [] as Window[])
+const cache = atom({ plugin: 'token-usage-ribbon', key: 'cache' } as const, null as CacheFacts | null)
+const fold = atom({ plugin: 'token-usage-ribbon', key: 'fold' } as const, null as Fold | null)
 
 const NAMES: Record<string, string> = { seven_day: '7D', five_hour: '5H', spend_limit: 'SPEND' }
 const ORDER: Record<string, number> = { five_hour: 0, seven_day: 1 }
