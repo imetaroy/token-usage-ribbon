@@ -1,0 +1,12 @@
+{
+  "name": "imetaroy",
+  "owner": { "name": "Prasant Roy", "url": "https://github.com/imetaroy" },
+  "description": "Claude Code mods by Prasant Roy.",
+  "plugins": [
+    {
+      "name": "usage-ribbon",
+      "source": "./",
+      "description": "A one-row band above the prompt in Claude Code's own colors: usage left, reset times, and whether the prompt cache is warm or cold."
+    }
+  ]
+}
