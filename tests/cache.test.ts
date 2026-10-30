@@ -69,7 +69,7 @@ test('squeezed, the cache never leaves the row: the band trims extras, keeping e
     const rows = await band.findAll({ key: 'row' })
     expect(rows.length).toBe(1)
     expect(JSON.stringify(rows[0])).toContain('Cache Warm')
-    expect(await band.find({ text: 'Usage' })).toBeDefined()
+    expect(await band.find({ text: 'Usage Left' })).toBeDefined()
     expect(await band.find({ key: 'block' })).toBeUndefined()
     const all = JSON.stringify(rows[0])
     expect(all.indexOf('5H')).toBeLessThan(all.indexOf('7D'))

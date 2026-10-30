@@ -217,7 +217,7 @@ export const register: Register = on => {
     if (list.length === 0 && !view) {
       return (
         <Box paddingX={1}>
-          <Text color={DIM}>Usage · waiting for the first reply</Text>
+          <Text color={DIM}>Usage Left · waiting for the first reply</Text>
         </Box>
       )
     }
@@ -274,7 +274,7 @@ export const register: Register = on => {
     }
 
     const width = (lv: Level): number => {
-      let w = 2 + (lv.label ? 'Usage'.length + GAP : 0)
+      let w = 2 + (lv.label ? 'Usage Left'.length + GAP : 0)
       list.forEach((win, i) => {
         const p = parts(win, lv)
         w += p.name.length + 1 + (lv.cells ? lv.cells + 1 : 0) + p.pct.length +
@@ -320,7 +320,7 @@ export const register: Register = on => {
 
     const row = (
       <Box key="row" flexDirection="row" paddingX={1} alignItems="center">
-        {lv.label ? <Box key="label" flexShrink={0} marginRight={GAP}><Text color={DIM} bold>Usage</Text></Box> : null}
+        {lv.label ? <Box key="label" flexShrink={0} marginRight={GAP}><Text color={DIM} bold>Usage Left</Text></Box> : null}
         {list.map(win)}
         <Box key="grow" flexGrow={1} />
         {cacheGroup}

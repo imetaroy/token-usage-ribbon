@@ -1,6 +1,6 @@
 {
   "name": "token-usage-ribbon",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A one-row band above the Claude Code prompt in Claude Code's own colors: 5-hour and 7-day usage left, reset times, and whether the prompt cache is warm or cold with what the next message costs.",
   "author": { "name": "Prasant Roy", "url": "https://github.com/imetaroy" },
   "homepage": "https://github.com/imetaroy/token-usage-ribbon",

@@ -35,7 +35,7 @@ test('the band shows percent left for each window once a reading lands', async (
     // 5H (42% left) draws before 7D (87.5% left)
     const all = JSON.stringify(await band.find({ type: 'Box' }))
     expect(all.indexOf('5H')).toBeLessThan(all.indexOf('7D'))
-    expect(await band.find({ text: 'Usage' })).toBeDefined()
+    expect(await band.find({ text: 'Usage Left' })).toBeDefined()
     await band.unmount()
   }
 })
@@ -55,7 +55,7 @@ test('in a narrow band everything stays on one row: labels and percents stay, ex
     component: 'AbovePrompt',
     props: { ...PROPS, bodyColumns: 36 },
   })
-  expect(await band.find({ text: 'Usage' })).toBeDefined()
+  expect(await band.find({ text: 'Usage Left' })).toBeDefined()
   expect(await band.find({ text: '42%' })).toBeDefined()
   expect(await band.find({ text: '87.5%' })).toBeDefined()
   expect(await band.find({ key: 'block' })).toBeUndefined()

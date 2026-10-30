@@ -3,7 +3,7 @@
 A Claude Code mod that adds one slim row above your prompt, drawn in Claude Code's own colours:
 
 ```
-Usage   5H ●●●●●●●●●○ 88% left · 1h 6m   7D ●●●●●●●●●○ 92% left · 6d 5h        ● Cache Warm 60m left  Show
+Usage Left   5H ●●●●●●●●●○ 88% left · 1h 6m   7D ●●●●●●●●●○ 92% left · 6d 5h        ● Cache Warm 60m left  Show
 ```
 
 - **5H and 7D**: how much of your 5-hour and 7-day usage is **left**, and when each resets. Under 15% adds a red **Low**.
@@ -15,7 +15,7 @@ It costs nothing to run: it reads Claude Code's own numbers and draws them. It n
 ## Design
 
 - **Native look.** Every colour is a Claude Code theme key (`claude`, `warning`, `success`, `suggestion`, `error`, `inactive`, `subtle`), so the band follows your light or dark theme. No custom background, no embedded font on the row.
-- **Always one row.** The band measures what it needs. As the window narrows it trims, in order: shorter dot bars and cache wording, the word "left", the dots, then reset times and the Show button. The labels (Usage, 5H, 7D, Cache Warm/Cold), the percentages and a cold cache's price always stay.
+- **Always one row.** The band measures what it needs. As the window narrows it trims, in order: shorter dot bars and cache wording, the word "left", the dots, then reset times and the Show button. The labels (Usage Left, 5H, 7D, Cache Warm/Cold), the percentages and a cold cache's price always stay.
 - **Even spacing.** Three cells between every group; usage on the left, the cache and its button together on the right.
 
 ## Install
